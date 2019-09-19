@@ -3,14 +3,14 @@
 """
 from __future__ import absolute_import
 from __future__ import division
-
+import os
 import edward as ed
 import tensorflow as tf
-
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # shut up tensorflow
 from edward.models import Bernoulli, Normal
 from progressbar import ETA, Bar, Percentage, ProgressBar
 
-from datasets import IHDP
+from ori_datasets import IHDP
 from evaluation import Evaluator
 import numpy as np
 import time
@@ -46,21 +46,26 @@ for i, (train, valid, test, contfeats, binfeats) in enumerate(dataset.get_train_
     (xtr, ttr, ytr), (y_cftr, mu0tr, mu1tr) = train
     (xva, tva, yva), (y_cfva, mu0va, mu1va) = valid
     (xte, tte, yte), (y_cfte, mu0te, mu1te) = test
+    # print train
     evaluator_test = Evaluator(yte, tte, y_cf=y_cfte, mu0=mu0te, mu1=mu1te)
+    # print (xtr.shape, ttr.shape, ytr.shape), (y_cftr.shape, mu0tr.shape, mu1tr.shape)
+    # print (xva.shape, tva.shape, yva.shape), (y_cfva.shape, mu0va.shape, mu1va.shape)
+    # print (xte.shape, tte.shape, yte.shape), (y_cfte.shape, mu0te.shape, mu1te.shape)
 
     # reorder features with binary first and continuous after
     perm = binfeats + contfeats
+    # print perm
     xtr, xva, xte = xtr[:, perm], xva[:, perm], xte[:, perm]
 
     xalltr, talltr, yalltr = np.concatenate([xtr, xva], axis=0), np.concatenate([ttr, tva], axis=0), np.concatenate([ytr, yva], axis=0)
     evaluator_train = Evaluator(yalltr, talltr, y_cf=np.concatenate([y_cftr, y_cfva], axis=0),
                                 mu0=np.concatenate([mu0tr, mu0va], axis=0), mu1=np.concatenate([mu1tr, mu1va], axis=0))
-
     # zero mean, unit variance for y during training
     ym, ys = np.mean(ytr), np.std(ytr)
     ytr, yva = (ytr - ym) / ys, (yva - ym) / ys
     best_logpvalid = - np.inf
-
+    # print ym
+    # print ys
     with tf.Graph().as_default():
         sess = tf.InteractiveSession()
 
@@ -167,7 +172,7 @@ for i, (train, valid, test, contfeats, binfeats) in enumerate(dataset.get_train_
                                                         x_ph_cont: x_train[:, len(binfeats):],
                                                         t_ph: t_train, y_ph: y_train})
                 avg_loss += info_dict['loss']
-
+                # print info_dict
             avg_loss = avg_loss / n_iter_per_epoch
             avg_loss = avg_loss / 100
 

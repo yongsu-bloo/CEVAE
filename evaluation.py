@@ -1,15 +1,25 @@
 import numpy as np
-
+from sklearn import metrics
+from sklearn.metrics import roc_auc_score
 
 class Evaluator(object):
-    def __init__(self, y, t, y_cf=None, mu0=None, mu1=None):
+    def __init__(self, y, t, y_cf=None, mu0=None, mu1=None, e=None):
         self.y = y
         self.t = t
         self.y_cf = y_cf
-        self.mu0 = mu0
-        self.mu1 = mu1
+        self.e = e
+
+        if y_cf is not None and (mu0 is None or mu1 is None):
+            mu0 = y * (1 - t) + y_cf * t
+            mu1 = y_cf * (1 - t) + y * t
+
         if mu0 is not None and mu1 is not None:
             self.true_ite = mu1 - mu0
+
+        self.mu0 = mu0
+        self.mu1 = mu1
+
+        self.hasnan = False
 
     def rmse_ite(self, ypred1, ypred0):
         pred_ite = np.zeros_like(self.true_ite)
@@ -21,6 +31,7 @@ class Evaluator(object):
 
     def abs_ate(self, ypred1, ypred0):
         return np.abs(np.mean(ypred1 - ypred0) - np.mean(self.true_ite))
+
 
     def pehe(self, ypred1, ypred0):
         return np.sqrt(np.mean(np.square((self.mu1 - self.mu0) - (ypred1 - ypred0))))
@@ -39,5 +50,43 @@ class Evaluator(object):
         ite = self.rmse_ite(ypred1, ypred0)
         ate = self.abs_ate(ypred1, ypred0)
         pehe = self.pehe(ypred1, ypred0)
-        return ite, ate, pehe
+        if self.y_cf is None and self.e is not None:
+            policy_risk = self.policy(ypred1, ypred0)
+            return ite, ate, pehe, policy_risk
+        else:
+            return ite, ate, pehe
 
+    def auc(self, ypred1, ypred0):
+        y_label = np.concatenate((self.mu0, self.mu1), axis=0)
+        y_label_pred = np.concatenate((ypred0, ypred1), axis=0)
+        fpr, tpr, thresholds = metrics.roc_curve(y_label, y_label_pred)
+        auc = metrics.auc(fpr, tpr)
+        roc_auc = roc_auc_score(y_label, y_label_pred)
+        # yf = self.y
+        # fact_fpr, fact_tpr, fact_thresholds = metrics.roc_curve(yf, yf_p)
+        # fact_auc = metrics.auc(fpr, tpr)
+        # fact_roc_auc = roc_auc_score(yf, yf_p)
+        return {'auc': auc,'roc_auc':roc_auc}#, 'fact_auc':fact_auc,'fact_roc_auc':fact_roc_auc }
+
+    def policy(self, pred_y_1, pred_y_0):
+        e = self.e
+
+        yf = self.y[e==1]
+        t = self.t
+
+        pred_policy = (pred_y_1 > pred_y_0).astype(float)
+        pred_policy_t = np.mean(pred_policy)
+        pred_policy_c = 1 - pred_policy_t
+        if np.sum((pred_policy==1) * (t_true==1)) == 0:
+            pred_y_t = 0.
+        else:
+            pred_y_t = np.mean(y_true[(pred_policy==1) * (t_true==1)])
+
+        if np.sum((pred_policy==0) * (t_true==0)) == 0:
+            pred_y_c = 0.
+        else:
+            pred_y_c = np.mean(y_true[(pred_policy==0) * (t_true==0)])
+
+        risk = 1 - (pred_y_t*pred_policy_t + pred_y_c*pred_policy_c)
+
+        return risk

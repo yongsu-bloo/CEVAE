@@ -36,9 +36,6 @@ def get_y0_y1(sess, y, f0, f1, shape=(), L=1, verbose=True):
             sys.stdout.flush()
         y0 += sess.run(ymean, feed_dict=f0) / L
         y1 += sess.run(ymean, feed_dict=f1) / L
-
     if L > 1 and verbose:
         print
     return y0, y1
-
-
