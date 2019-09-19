@@ -42,7 +42,6 @@ class IHDP(object):
             y_cf_test = np.reshape(data_test['ycf'][:,i], (-1,1))
             mu_0_test = np.reshape(data_test['mu0'][:,i], (-1,1))
             mu_1_test = np.reshape(data_test['mu1'][:,i], (-1,1))
-
             x[:, 13] -= 1
             x_test[:13] -= 1
             idxtrain, iva = train_test_split(np.arange(x.shape[0]), test_size=0.3)
