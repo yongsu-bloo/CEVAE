@@ -7,7 +7,7 @@ import os, random
 import edward as ed
 import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # shut up tensorflow
-from edward.models import Bernoulli, Normal
+from edward.models import Bernoulli, Normal, BernoulliWithSigmoidProbs
 from progressbar import ETA, Bar, Percentage, ProgressBar
 
 from datasets import IHDP, TWINS, JOBS
@@ -29,33 +29,48 @@ parser.add_argument('-lr', type=float, default=0.001)
 parser.add_argument('-opt', choices=['adam', 'adamax'], default='adam')
 parser.add_argument('-epochs', type=int, default=100)
 parser.add_argument('-print_every', type=int, default=10)
-
+# added from cib research
+parser.add_argument('-b', type=int, default=100)
+parser.add_argument('-d', type=int, default=20)
 parser.add_argument('-task', type=str, default='ihdp')
+parser.add_argument('-nh', type=int, default=3)
+parser.add_argument('-h_dim', type=int, default=200)
+# cib experiments
 parser.add_argument('-noise', type=int, default=0)
 parser.add_argument('-top-per', type=float, default=0.0)
 parser.add_argument('-pick-type', type=str, default="top", help="top or rand")
 
+parser.add_argument('-pnoise', type=str, default=None, help="padding noise type")
+parser.add_argument('-pn_size', type=int, default=10)
+parser.add_argument('-pn_scale', type=float, default=0.2)
+
 args = parser.parse_args()
 
 args.true_post = True
+pnoise_type = args.pnoise
+pnoise_size = args.pn_size
+pnoise_scale = args.pn_scale
+
+data_pref = '_'.join([ str(i) for i in [pnoise_type, pnoise_size, pnoise_scale, ""]]) if pnoise_type is not None else ""
 task = args.task
 if task == 'ihdp':
-    dataset = IHDP(replications=args.reps)
+    dataset = IHDP(replications=args.reps, data_pref=data_pref)
 elif task == 'twins':
-    dataset = TWINS(replications=args.reps)
+    dataset = TWINS(replications=args.reps, data_pref=data_pref)
 elif task == 'jobs':
-    dataset = JOBS(replications=args.reps)
-dimx = 25
+    dataset = JOBS(replications=args.reps, data_pref=data_pref)
+# dimx = 25
 scores = np.zeros((args.reps, 3))
 scores_test = np.zeros((args.reps, 3))
 
 M = None  # batch size during training
-d = 20  # latent dimension
+d = args.d  # latent dimension
 lamba = 1e-6  # weight decay
-nh, h = 3, 200  # number and size of hidden layers
-batch_size = 100
+nh, h = args.nh, args.h_dim  # number and size of hidden layers
+batch_size = args.b
 top_per=args.top_per
 pick_type = args.pick_type if top_per>0 else None
+
 
 
 if args.noise > 0:
@@ -65,7 +80,7 @@ else:
 num_seeds = 12
 
 for gnoise in noises:
-    for i, (train, valid, test, contfeats, binfeats) in tqdm(enumerate(dataset.get_train_valid_test()), desc="Replications"):
+    for i, (train, valid, test, contfeats, binfeats) in enumerate(dataset.get_train_valid_test()):
         print '\nReplication {}/{}'.format(i + 1, args.reps)
         # print train
         if task == 'jobs':
@@ -78,7 +93,6 @@ for gnoise in noises:
             (xva, tva, yva), (y_cfva, mu0va, mu1va) = valid
             (xte, tte, yte), (y_cfte, mu0te, mu1te) = test
             evaluator_test = Evaluator(yte, tte, y_cf=y_cfte, mu0=mu0te, mu1=mu1te)
-
         num_train = len(xtr) + len(xva)
         num_test = len(xte)
         # reorder features with binary first and continuous after
@@ -93,8 +107,9 @@ for gnoise in noises:
                                         mu0=np.concatenate([mu0tr, mu0va], axis=0), mu1=np.concatenate([mu1tr, mu1va], axis=0))
 
         # zero mean, unit variance for y during training
-        ym, ys = np.mean(ytr), np.std(ytr)
-        ytr, yva = (ytr - ym) / ys, (yva - ym) / ys
+        if task != 'twins':
+            ym, ys = np.mean(ytr), np.std(ytr)
+            ytr, yva = (ytr - ym) / ys, (yva - ym) / ys
         best_logpvalid = - np.inf
         with tf.Graph().as_default():
             sess = tf.InteractiveSession()
@@ -133,8 +148,10 @@ for gnoise in noises:
             # p(y|t,z)
             mu2_t0 = fc_net(z, nh * [h], [[1, None]], 'py_t0z', lamba=lamba, activation=activation)
             mu2_t1 = fc_net(z, nh * [h], [[1, None]], 'py_t1z', lamba=lamba, activation=activation)
-            y = Normal(loc=t * mu2_t1 + (1. - t) * mu2_t0, scale=tf.ones_like(mu2_t0))
-
+            if task == 'twins':
+                y = BernoulliWithSigmoidProbs(logits=t * mu2_t1 + (1. - t) * mu2_t0, dtype=tf.float32)
+            else:
+                y = Normal(loc=t * mu2_t1 + (1. - t) * mu2_t0, scale=tf.ones_like(mu2_t0))
             # CEVAE variational approximation (encoder)
             # q(t|x)
             logits_t = fc_net(x_ph, [d], [[1, None]], 'qt', lamba=lamba, activation=activation)
@@ -143,7 +160,12 @@ for gnoise in noises:
             hqy = fc_net(x_ph, (nh - 1) * [h], [], 'qy_xt_shared', lamba=lamba, activation=activation)
             mu_qy_t0 = fc_net(hqy, [h], [[1, None]], 'qy_xt0', lamba=lamba, activation=activation)
             mu_qy_t1 = fc_net(hqy, [h], [[1, None]], 'qy_xt1', lamba=lamba, activation=activation)
-            qy = Normal(loc=qt * mu_qy_t1 + (1. - qt) * mu_qy_t0, scale=tf.ones_like(mu_qy_t0))
+            if task == 'twins':
+                asdf = tf.nn.sigmoid(qt * mu_qy_t1 + (1. - qt) * mu_qy_t0)
+                fdsa = qt * mu_qy_t1 + (1. - qt) * mu_qy_t0
+                qy = BernoulliWithSigmoidProbs(logits=qt * mu_qy_t1 + (1. - qt) * mu_qy_t0, dtype=tf.float32)
+            else:
+                qy = Normal(loc=qt * mu_qy_t1 + (1. - qt) * mu_qy_t0, scale=tf.ones_like(mu_qy_t0))
             # q(z|x,t,y)
             inpt2 = tf.concat([x_ph, qy], 1)
             hqz = fc_net(inpt2, (nh - 1) * [h], [], 'qz_xty_shared', lamba=lamba, activation=activation)
@@ -169,6 +191,12 @@ for gnoise in noises:
             x1_post_eval = ed.copy(x1, {z: qz.mean(), qt: t_ph, qy: y_ph}, scope='x1_post_eval')
             x2_post_eval = ed.copy(x2, {z: qz.mean(), qt: t_ph, qy: y_ph}, scope='x2_post_eval')
             t_post_eval = ed.copy(t, {z: qz.mean(), qt: t_ph, qy: y_ph}, scope='t_post_eval')
+            # losses
+            yt_post_loss = tf.reduce_mean(tf.reduce_sum(y_post_eval.log_prob(y_ph) + t_post_eval.log_prob(t_ph), axis=1))
+            x1_post_loss = tf.reduce_mean(tf.reduce_sum(x1_post_eval.log_prob(x_ph_bin), axis=1))
+            x2_post_loss = tf.reduce_mean(tf.reduce_sum(x2_post_eval.log_prob(x_ph_cont), axis=1))
+            z_qz_loss = tf.reduce_mean(tf.reduce_sum(z.log_prob(qz.mean()) - qz.log_prob(qz.mean()), axis=1))
+
             logp_valid = tf.reduce_mean(tf.reduce_sum(y_post_eval.log_prob(y_ph) + t_post_eval.log_prob(t_ph), axis=1) +
                                         tf.reduce_sum(x1_post_eval.log_prob(x_ph_bin), axis=1) +
                                         tf.reduce_sum(x2_post_eval.log_prob(x_ph_cont), axis=1) +
@@ -181,7 +209,7 @@ for gnoise in noises:
             # saver = tf.train.Saver(tf.contrib.slim.get_variables())
             tf.global_variables_initializer().run()
 
-            n_epoch, n_iter_per_epoch, idx = args.epochs, 10 * int(xtr.shape[0] / 100), np.arange(xtr.shape[0])
+            n_epoch, n_iter_per_epoch, idx = args.epochs, 10 * int(xtr.shape[0] / batch_size), np.arange(xtr.shape[0])
 
             # dictionaries needed for evaluation
             tr0, tr1 = np.zeros((xalltr.shape[0], 1)), np.ones((xalltr.shape[0], 1))
@@ -197,8 +225,16 @@ for gnoise in noises:
             f0 = {x_ph_bin: xalltr[:, 0:len(binfeats)], x_ph_cont: xalltr[:, len(binfeats):]+gnoise_train, t_ph: tr0}
             f1t = {x_ph_bin: xte[:, 0:len(binfeats)], x_ph_cont: xte[:, len(binfeats):]+gnoise_test, t_ph: tr1t}
             f0t = {x_ph_bin: xte[:, 0:len(binfeats)], x_ph_cont: xte[:, len(binfeats):]+gnoise_test, t_ph: tr0t}
-
             for epoch in range(n_epoch):
+                # asdf1 = sess.run(asdf, feed_dict=f0)
+                # fdsa1 = sess.run(fdsa, feed_dict=f0)
+                # print(asdf1)
+                # print(fdsa1)
+                # print("-"*20)
+                # asdf2 = sess.run(asdf, feed_dict=f1)
+                # fdsa2 = sess.run(fdsa, feed_dict=f1)
+                # print(asdf2)
+                # print(fdsa2)
                 avg_loss = 0.0
                 # loging
                 t0 = time.time()
@@ -211,15 +247,32 @@ for gnoise in noises:
                     pbar.update(j)
                     batch = np.random.choice(idx, batch_size)
                     x_train, y_train, t_train = xtr[batch], ytr[batch], ttr[batch]
+                    if np.all(y_train==0.)or np.all(y_train==1.):
+                        print("Y train batch has problem")
+                    if np.all(t_train==0.)or np.all(t_train==1.):
+                        print("T train batch has problem")
                     info_dict = inference.update(feed_dict={x_ph_bin: x_train[:, 0:len(binfeats)],
                                                             x_ph_cont: x_train[:, len(binfeats):],
                                                             t_ph: t_train, y_ph: y_train})
                     # print info_dict
+                    if np.any(np.isnan(info_dict['loss'])):
+                        print()
+                        # print("yujfggfhjfgjhfghjfgjhfgjhfgjhjhg")
+
                     avg_loss += info_dict['loss']
 
                 avg_loss = avg_loss / n_iter_per_epoch
                 avg_loss = avg_loss / batch_size
-
+                # To check individual loss
+                # ytpostloss, x1postloss, x2postloss, zqzloss, logpvalid1 = sess.run([yt_post_loss, x1_post_loss, x2_post_loss, z_qz_loss, logp_valid],
+                #                                 feed_dict={x_ph_bin: xva[:, 0:len(binfeats)],
+                #                                             x_ph_cont: xva[:, len(binfeats):],
+                #                                             t_ph: tva, y_ph: yva})
+                # print("-"*20)
+                # print("Validation losses")
+                # for lss in [ytpostloss, x1postloss, x2postloss, zqzloss, logpvalid1]:
+                #     print(lss)
+                # print("-"*20)
                 if epoch % args.earl == 0 or epoch == (n_epoch - 1):
                     logpvalid = sess.run(logp_valid, feed_dict={x_ph_bin: xva[:, 0:len(binfeats)],
                                                                 x_ph_cont: xva[:, len(binfeats):],
@@ -231,23 +284,35 @@ for gnoise in noises:
                         # saver.save(sess, 'models/m6-{}-{}'.format(task, time.time()))
 
                 if epoch % args.print_every == 0:
-                    y0, y1 = get_y0_y1(sess, y_post, f0, f1, shape=yalltr.shape, L=1)
+                    y0, y1 = get_y0_y1(sess, y_post, f0, f1, shape=yalltr.shape, L=1, task=task)
                     if np.any(np.isnan(y0)) or np.any(np.isnan(y1)):
                         print 'NaNException'
-                        break
-                    y0, y1 = y0 * ys + ym, y1 * ys + ym
+                        error()
+                    if task != 'twins':
+                        y0, y1 = y0 * ys + ym, y1 * ys + ym
                     score_train = evaluator_train.calc_stats(y1, y0)
                     rmses_train = evaluator_train.y_errors(y0, y1)
 
-                    y0, y1 = get_y0_y1(sess, y_post, f0t, f1t, shape=yte.shape, L=1)
-                    y0, y1 = y0 * ys + ym, y1 * ys + ym
-                    score_test = evaluator_test.calc_stats(y1, y0)
+                    y0t, y1t = get_y0_y1(sess, y_post, f0t, f1t, shape=yte.shape, L=1, task=task)
+                    if task != 'twins':
+                        y0t, y1t = y0t * ys + ym, y1t * ys + ym
+                    score_test = evaluator_test.calc_stats(y1t, y0t)
 
+                    if args.task=="twins":
+                        print "Train: ", evaluator_train.auc(y1, y0)
+                        print "Test: ", evaluator_test.auc(y1t, y0t)
+                        # print(evaluator_train.mu0[:100])
+                        # print(y0[:100])
+                        # print(np.sum(evaluator_train.mu0==y0) / len(y0))
+                        # print(np.sum(evaluator_train.mu1==y1) / len(y1))
+                        # print(np.sum(evaluator_test.mu0==y0t) / len(y0t))
+                        # print(np.sum(evaluator_test.mu1==y1t) / len(y1t))
                     print "Epoch: {}/{}, log p(x) >= {:0.3f}, ite_tr: {:0.3f}, ate_tr: {:0.3f}, pehe_tr: {:0.3f}, " \
                           "rmse_f_tr: {:0.3f}, rmse_cf_tr: {:0.3f}, ite_te: {:0.3f}, ate_te: {:0.3f}, pehe_te: {:0.3f}, " \
                           "dt: {:0.3f}".format(epoch + 1, n_epoch, avg_loss, score_train[0], score_train[1], score_train[2],
                                                rmses_train[0], rmses_train[1], score_test[0], score_test[1], score_test[2],
                                                time.time() - t0)
+
 
             # saver.restore(sess, 'models/m6-{}'.format(args.task))
 
@@ -288,13 +353,15 @@ for gnoise in noises:
             evaluator_test = Evaluator(yte[test_filter], tte[test_filter], y_cf=y_cfte[test_filter], mu0=mu0te[test_filter], mu1=mu1te[test_filter])
             evaluator_train = Evaluator(yalltr[train_filter], talltr[train_filter], y_cf=np.concatenate([y_cftr, y_cfva], axis=0)[train_filter],
                                         mu0=np.concatenate([mu0tr, mu0va], axis=0)[train_filter], mu1=np.concatenate([mu1tr, mu1va], axis=0)[train_filter])
-            y0, y1 = get_y0_y1(sess, y_post, f0, f1, shape=yalltr.shape, L=100)
-            y0, y1 = y0 * ys + ym, y1 * ys + ym
+            y0, y1 = get_y0_y1(sess, y_post, f0, f1, shape=yalltr.shape, L=100, task=task)
+            if task != 'twins':
+                y0, y1 = y0 * ys + ym, y1 * ys + ym
             score = evaluator_train.calc_stats(y1[train_filter], y0[train_filter])
             scores[i, :] = score
 
-            y0t, y1t = get_y0_y1(sess, y_post, f0t, f1t, shape=yte.shape, L=100)
-            y0t, y1t = y0t * ys + ym, y1t * ys + ym
+            y0t, y1t = get_y0_y1(sess, y_post, f0t, f1t, shape=yte.shape, L=100, task=task)
+            if task != 'twins':
+                y0t, y1t = y0t * ys + ym, y1t * ys + ym
             score_test = evaluator_test.calc_stats(y1t[test_filter], y0t[test_filter])
             scores_test[i, :] = score_test
 
@@ -305,6 +372,8 @@ for gnoise in noises:
             if args.task=="twins":
                 print "Train: ", evaluator_train.auc(y1, y0)
                 print "Test: ", evaluator_test.auc(y1t, y0t)
+                # print(evaluator_train.mu0[:100])
+                # print(y0[:100])
             sess.close()
 
     print 'CEVAE model total scores'

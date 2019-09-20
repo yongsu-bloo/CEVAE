@@ -4,15 +4,17 @@ import os
 np.random.seed(2019)
 
 class IHDP(object):
-    def __init__(self, path_data="datasets/IHDP", replications=10):
+    def __init__(self, path_data="../data/IHDP", replications=10, data_pref=""):
         self.path_data = path_data
+        self.data = np.load(self.path_data + '/{}ihdp_npci_1-1000.train.npz'.format(data_pref))
+        self.data_test = np.load(self.path_data + '/{}ihdp_npci_1-1000.test.npz'.format(data_pref))
+        x_size = self.data['x'].shape[1]
+
         self.replications = replications
         # which features are binary
         self.binfeats = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
         # which features are continuous
-        self.contfeats = [i for i in xrange(25) if i not in self.binfeats]
-        self.data = np.load(self.path_data + '/ihdp_npci_1-1000.train.npz')
-        self.data_test = np.load(self.path_data + '/ihdp_npci_1-1000.test.npz')
+        self.contfeats = [i for i in xrange(x_size) if i not in self.binfeats]
 
     def __iter__(self):
         for i in xrange(self.replications):
@@ -34,6 +36,7 @@ class IHDP(object):
             y_cf = np.reshape(data['ycf'][:,i], (-1,1))
             mu_0 = np.reshape(data['mu0'][:,i], (-1,1))
             mu_1 = np.reshape(data['mu1'][:,i], (-1,1))
+            x[:, 13] -= 1
 
             data_test = self.data_test
             x_test = data_test['x'][:,:,i]
@@ -42,27 +45,25 @@ class IHDP(object):
             y_cf_test = np.reshape(data_test['ycf'][:,i], (-1,1))
             mu_0_test = np.reshape(data_test['mu0'][:,i], (-1,1))
             mu_1_test = np.reshape(data_test['mu1'][:,i], (-1,1))
-            x[:, 13] -= 1
-            x_test[:13] -= 1
-            idxtrain, iva = train_test_split(np.arange(x.shape[0]), test_size=0.3)
+            x_test[:, 13] -= 1
 
-            train = (x[idxtrain], t[idxtrain], y[idxtrain]), (y_cf[idxtrain], mu_0[idxtrain], mu_1[idxtrain])
+            itr, iva = train_test_split(np.arange(x.shape[0]), test_size=0.3, random_state=1)
+            train = (x[itr], t[itr], y[itr]), (y_cf[itr], mu_0[itr], mu_1[itr])
             valid = (x[iva], t[iva], y[iva]), (y_cf[iva], mu_0[iva], mu_1[iva])
             test = (x_test, t_test, y_test), (y_cf_test, mu_0_test, mu_1_test)
-
-
             yield train, valid, test, self.contfeats, self.binfeats
 
 class TWINS(object):
-    def __init__(self, path_data="datasets/TWINS", replications=10):
+    def __init__(self, path_data="../data/TWINS", replications=10, data_pref=""):
         self.path_data = path_data
+        self.data = np.load(self.path_data + '/{}twins_1-10.train.npz'.format(data_pref))
+        self.data_test = np.load(self.path_data + '/{}twins_1-10.test.npz'.format(data_pref))
+        x_size = self.data['x'].shape[1]
         self.replications = replications
         # which features are continuous
         self.contfeats = [ 0,1,2,3,4,5, 7,8,9,10,11, 32,33,34,35,36,37,38,39 ]
         # which features are binary
-        self.binfeats = [ i for i in xrange(40) if i not in self.contfeats ]
-        self.data = np.load(self.path_data + '/twins_1-10.train.npz')
-        self.data_test = np.load(self.path_data + '/twins_1-10.test.npz')
+        self.binfeats = [ i for i in xrange(x_size) if i not in self.contfeats ]
 
     def __iter__(self):
         for i in xrange(self.replications):
@@ -95,12 +96,11 @@ class TWINS(object):
             mu_0_test = np.reshape(y_test * (1 - t_test) + y_cf_test * t_test, (-1,1))
             mu_1_test = np.reshape(y_cf_test * (1 - t_test) + y_test * t_test, (-1,1))
 
-            idxtrain, iva = train_test_split(np.arange(x.shape[0]), test_size=0.3)
+            itr, iva = train_test_split(np.arange(x.shape[0]), test_size=0.3)
 
-            train = (x[idxtrain], t[idxtrain], y[idxtrain]), (y_cf[idxtrain], mu_0[idxtrain], mu_1[idxtrain])
+            train = (x[itr], t[itr], y[itr]), (y_cf[itr], mu_0[itr], mu_1[itr])
             valid = (x[iva], t[iva], y[iva]), (y_cf[iva], mu_0[iva], mu_1[iva])
             test = (x_test, t_test, y_test), (y_cf_test, mu_0_test, mu_1_test)
-
 
             yield train, valid, test, self.contfeats, self.binfeats
 
@@ -140,9 +140,9 @@ class JOBS(object):
             e_test = np.reshape(data_test['e'][:,i], (-1,1))
 
             # validation set split
-            idxtrain, iva = train_test_split(np.arange(x.shape[0]), test_size=0.3)
+            itr, iva = train_test_split(np.arange(x.shape[0]), test_size=0.3)
 
-            train = (x[idxtrain], t[idxtrain], y[idxtrain]), e[idxtrain]
+            train = (x[itr], t[itr], y[itr]), e[itr]
             valid = (x[iva], t[iva], y[iva]), e[iva]
             test = (x_test, t_test, y_test), e_test
 

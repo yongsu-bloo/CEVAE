@@ -48,9 +48,6 @@ for i, (train, valid, test, contfeats, binfeats) in enumerate(dataset.get_train_
     (xte, tte, yte), (y_cfte, mu0te, mu1te) = test
     # print train
     evaluator_test = Evaluator(yte, tte, y_cf=y_cfte, mu0=mu0te, mu1=mu1te)
-    # print (xtr.shape, ttr.shape, ytr.shape), (y_cftr.shape, mu0tr.shape, mu1tr.shape)
-    # print (xva.shape, tva.shape, yva.shape), (y_cfva.shape, mu0va.shape, mu1va.shape)
-    # print (xte.shape, tte.shape, yte.shape), (y_cfte.shape, mu0te.shape, mu1te.shape)
 
     # reorder features with binary first and continuous after
     perm = binfeats + contfeats
