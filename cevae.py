@@ -18,7 +18,6 @@ from utils import fc_net, get_y0_y1, write_results
 import arguments
 
 args = arguments.parse_args()
-args.exp_name = "jobs-param-search"
 exp_name = args.exp_name
 
 task = args.task
