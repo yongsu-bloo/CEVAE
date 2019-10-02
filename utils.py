@@ -3,6 +3,36 @@ from tensorflow.contrib import slim
 import numpy as np
 import sys
 from tensorflow.contrib.layers.python.layers import initializers
+# from cib
+def write_results(args, results):
+    train_mean, train_std, test_mean, test_std = results
+
+    results_save_path = './results/result-{}.tsv'.format(args.exp_name)
+    with open(results_save_path, "r") as f:
+        key_names = f.readline().rstrip().split("\t")
+    with open(results_save_path, 'a+') as res:
+        keys = []
+        for key in key_names[:-4]:
+            keys.append(eval("args.{}".format(key)))
+        metrics = [train_mean,
+                    train_std,
+                    test_mean,
+                    test_std]
+        contents = keys + metrics
+        contents = [str(content) for content in contents]
+        contents= '\t'.join(contents)
+        res.write(contents)
+        res.write('\n')
+
+        print('Test PEHE Mean : {:.3f}, Test PEHE Std : {:.3f}'.format(
+            train_mean,
+            train_std
+            ))
+
+        print('Test PEHE Mean : {:.3f}, Test PEHE Std : {:.3f}'.format(
+            test_mean,
+            test_std
+            ))
 
 def fc_net(inp, layers, out_layers, scope, lamba=1e-3, activation=tf.nn.relu, reuse=None,
            weights_initializer=initializers.xavier_initializer(uniform=False),
@@ -33,6 +63,7 @@ def fc_net(inp, layers, out_layers, scope, lamba=1e-3, activation=tf.nn.relu, re
 def get_y0_y1(sess, y, f0, f1, shape=(), L=1, verbose=True, task='ihdp'):
     y0, y1 = np.zeros(shape, dtype=np.float32), np.zeros(shape, dtype=np.float32)
     if False:
+        # for checkout the value
         y0 += sess.run(y, feed_dict=f0)
         y1 += sess.run(y, feed_dict=f1)
         y0 = np.floor(y0)

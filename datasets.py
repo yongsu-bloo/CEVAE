@@ -4,10 +4,10 @@ import os
 np.random.seed(2019)
 
 class IHDP(object):
-    def __init__(self, path_data="../data/IHDP", replications=10, data_pref=""):
+    def __init__(self, path_data="../data/IHDP/", replications=10, data_pref=""):
         self.path_data = path_data
-        self.data = np.load(self.path_data + '/{}ihdp_npci_1-1000.train.npz'.format(data_pref))
-        self.data_test = np.load(self.path_data + '/{}ihdp_npci_1-1000.test.npz'.format(data_pref))
+        self.data = np.load(self.path_data + '{}ihdp_npci_1-1000.train.npz'.format(data_pref))
+        self.data_test = np.load(self.path_data + '{}ihdp_npci_1-1000.test.npz'.format(data_pref))
         x_size = self.data['x'].shape[1]
 
         self.replications = replications

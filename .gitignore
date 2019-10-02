@@ -1,6 +1,8 @@
 datasets/
 models/
+results/
 logs/
+
 # Created by https://www.gitignore.io/api/vim,git,linux,python,jupyternotebooks
 # Edit at https://www.gitignore.io/?templates=vim,git,linux,python,jupyternotebooks
 

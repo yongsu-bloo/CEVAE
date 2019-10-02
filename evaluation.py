@@ -3,7 +3,7 @@ from sklearn import metrics
 from sklearn.metrics import roc_auc_score
 
 class Evaluator(object):
-    def __init__(self, y, t, y_cf=None, mu0=None, mu1=None, e=None):
+    def __init__(self, y, t, y_cf=None, mu0=None, mu1=None, e=None, task="idhp"):
         self.y = y
         self.t = t
         self.y_cf = y_cf
@@ -20,7 +20,8 @@ class Evaluator(object):
         self.mu1 = mu1
 
         self.hasnan = False
-
+        self.task = task
+        
     def rmse_ite(self, ypred1, ypred0):
         pred_ite = np.zeros_like(self.true_ite)
         idx1, idx0 = np.where(self.t == 1), np.where(self.t == 0)
@@ -49,24 +50,35 @@ class Evaluator(object):
     def calc_stats(self, ypred1, ypred0):
         ite = self.rmse_ite(ypred1, ypred0)
         ate = self.abs_ate(ypred1, ypred0)
-        pehe = self.pehe(ypred1, ypred0)
-        if self.y_cf is None and self.e is not None:
+
+
+        # if self.y_cf is None and self.e is not None:
+        #     policy_risk = self.policy(ypred1, ypred0)
+        #     return ite, ate, pehe, policy_risk
+        # else:
+        #     return ite, ate, pehe
+        if self.task == 'jobs':
             policy_risk = self.policy(ypred1, ypred0)
-            return ite, ate, pehe, policy_risk
+            return ite, ate, policy_risk
+
+        elif self.task == 'twins':
+            auc = self.auc(ypred1, ypred0)
+            return ite, ate, auc
         else:
+            pehe = self.pehe(ypred1, ypred0)
             return ite, ate, pehe
 
     def auc(self, ypred1, ypred0):
         y_label = np.concatenate((self.mu0, self.mu1), axis=0)
         y_label_pred = np.concatenate((ypred0, ypred1), axis=0)
-        fpr, tpr, thresholds = metrics.roc_curve(y_label, y_label_pred)
-        auc = metrics.auc(fpr, tpr)
         roc_auc = roc_auc_score(y_label, y_label_pred)
+        # fpr, tpr, thresholds = metrics.roc_curve(y_label, y_label_pred)
+        # auc = metrics.auc(fpr, tpr)
         # yf = self.y
         # fact_fpr, fact_tpr, fact_thresholds = metrics.roc_curve(yf, yf_p)
         # fact_auc = metrics.auc(fpr, tpr)
         # fact_roc_auc = roc_auc_score(yf, yf_p)
-        return {'auc': auc,'roc_auc':roc_auc}#, 'fact_auc':fact_auc,'fact_roc_auc':fact_roc_auc }
+        return roc_auc#, 'fact_auc':fact_auc,'fact_roc_auc':fact_roc_auc }
 
     def policy(self, pred_y_1, pred_y_0):
         e = self.e

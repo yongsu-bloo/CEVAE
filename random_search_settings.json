@@ -1,0 +1,14 @@
+{
+    "trial_num" : 40,
+    "gpu_ids" : [0, 1, 2, 3],
+    "parallel_tasks_per_gpu" : 10,
+    "exp_name" : "twins-param-search",
+    "args_info" : [
+        {"arg" : "--task", "option" : ["twins"]},
+        {"arg" : "--lr", "option" : [1e-5, 3.16e-05, 1e-4, 3.16e-04]},
+        {"arg" : "--batch_size", "option" : [128, 256, 512]},
+        {"arg" : "--latent_dim", "option" : [10, 20, 40]},
+        {"arg" : "--nh", "option" : [2, 3, 4]},
+        {"arg" : "--h_dim", "option" : [64, 128, 256]}
+    ]
+}
