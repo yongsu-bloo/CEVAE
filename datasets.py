@@ -122,7 +122,6 @@ class JOBS(object):
             t = data['t'][:,i]
             y = data['yf'][:,i]
             e = data['e'][:,i]
-
             yield (x, t, y), e
 
     def get_train_valid_test(self):

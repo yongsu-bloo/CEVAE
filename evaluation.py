@@ -8,6 +8,7 @@ class Evaluator(object):
         self.t = t
         self.y_cf = y_cf
         self.e = e
+        self.true_ite = None
 
         if y_cf is not None and (mu0 is None or mu1 is None):
             mu0 = y * (1 - t) + y_cf * t
@@ -21,8 +22,10 @@ class Evaluator(object):
 
         self.hasnan = False
         self.task = task
-        
+
     def rmse_ite(self, ypred1, ypred0):
+        if self.true_ite is None:
+            return np.nan
         pred_ite = np.zeros_like(self.true_ite)
         idx1, idx0 = np.where(self.t == 1), np.where(self.t == 0)
         ite1, ite0 = self.y[idx1] - ypred0[idx1], ypred1[idx0] - self.y[idx0]
@@ -31,6 +34,8 @@ class Evaluator(object):
         return np.sqrt(np.mean(np.square(self.true_ite - pred_ite)))
 
     def abs_ate(self, ypred1, ypred0):
+        if self.true_ite is None:
+            return np.nan
         return np.abs(np.mean(ypred1 - ypred0) - np.mean(self.true_ite))
 
 
@@ -82,9 +87,11 @@ class Evaluator(object):
 
     def policy(self, pred_y_1, pred_y_0):
         e = self.e
+        y_true = self.y[e==1]
+        t_true = self.t[e==1]
 
-        yf = self.y[e==1]
-        t = self.t
+        pred_y_0 = pred_y_0[e==1]
+        pred_y_1 = pred_y_1[e==1]
 
         pred_policy = (pred_y_1 > pred_y_0).astype(float)
         pred_policy_t = np.mean(pred_policy)
@@ -92,6 +99,7 @@ class Evaluator(object):
         if np.sum((pred_policy==1) * (t_true==1)) == 0:
             pred_y_t = 0.
         else:
+            idx = (pred_policy==1) * (t_true==1)
             pred_y_t = np.mean(y_true[(pred_policy==1) * (t_true==1)])
 
         if np.sum((pred_policy==0) * (t_true==0)) == 0:

@@ -62,20 +62,13 @@ def fc_net(inp, layers, out_layers, scope, lamba=1e-3, activation=tf.nn.relu, re
 
 def get_y0_y1(sess, y, f0, f1, shape=(), L=1, verbose=True, task='ihdp'):
     y0, y1 = np.zeros(shape, dtype=np.float32), np.zeros(shape, dtype=np.float32)
-    if False:
-        # for checkout the value
-        y0 += sess.run(y, feed_dict=f0)
-        y1 += sess.run(y, feed_dict=f1)
-        y0 = np.floor(y0)
-        y1 = np.floor(y1)
-    else:
-        ymean = y.mean()
-        for l in range(L):
-            if L > 1 and verbose:
-                sys.stdout.write('\r Sample {}/{}'.format(l + 1, L))
-                sys.stdout.flush()
-            y0 += sess.run(ymean, feed_dict=f0) / L
-            y1 += sess.run(ymean, feed_dict=f1) / L
+    ymean = y.mean()
+    for l in range(L):
+        if L > 1 and verbose:
+            sys.stdout.write('\r Sample {}/{}'.format(l + 1, L))
+            sys.stdout.flush()
+        y0 += sess.run(ymean, feed_dict=f0) / L
+        y1 += sess.run(ymean, feed_dict=f1) / L
     if L > 1 and verbose:
         print()
     return y0, y1
