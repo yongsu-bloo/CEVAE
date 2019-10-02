@@ -1,11 +1,10 @@
 {
-    "trial_num" : 100,
+    "trial_num" : 80,
     "gpu_ids" : [0, 1, 2, 3],
     "parallel_tasks_per_gpu" : 10,
     "exp_name" : "jobs-param-search",
     "args_info" : [
         {"arg" : "--task", "option" : ["jobs"]},
-        {"arg" : "--opt", "option" : ["adam", "adamax"]},
         {"arg" : "--lr", "option" : [3.16e-05, 1e-4, 1e-03, 0.01]},
         {"arg" : "--epochs", "option" : [100, 500, 1000, 2000]},
         {"arg" : "--lamba", "option" : [1e-4, 1e-6]},
