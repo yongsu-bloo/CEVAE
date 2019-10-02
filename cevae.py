@@ -18,7 +18,7 @@ from utils import fc_net, get_y0_y1, write_results
 import arguments
 
 args = arguments.parse_args()
-args.exp_name = "twins-param-search"
+args.exp_name = "jobs-param-search"
 exp_name = args.exp_name
 
 task = args.task
@@ -53,7 +53,7 @@ scores_test = np.zeros((args.reps, 3))
 
 M = None  # batch size during training
 d = args.latent_dim  # latent dimension
-lamba = 1e-6  # weight decay
+lamba = args.lamba  # weight decay
 nh, h = args.nh, args.h_dim  # number and size of hidden layers
 batch_size = args.batch_size
 epochs = args.epochs

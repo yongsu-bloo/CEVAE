@@ -105,15 +105,15 @@ class TWINS(object):
             yield train, valid, test, self.contfeats, self.binfeats
 
 class JOBS(object):
-    def __init__(self, path_data="datasets/JOBS", replications=10):
+    def __init__(self, path_data="../data/JOBS", replications=10, data_pref=""):
         self.path_data = path_data
         self.replications = replications
         # which features are binary
         self.binfeats = [ 2,3,4,5,13,14,16 ]
         # which features are continuous
         self.contfeats = [ i for i in xrange(17) if i not in self.binfeats ]
-        self.data = np.load(self.path_data + '/jobs.train.npz')
-        self.data_test = np.load(self.path_data + '/jobs.test.npz')
+        self.data = np.load(self.path_data + '/{}jobs.train.npz'.format(data_pref))
+        self.data_test = np.load(self.path_data + '/{}jobs.test.npz'.format(data_pref))
 
     def __iter__(self):
         for i in xrange(self.replications):
