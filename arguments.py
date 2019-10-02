@@ -2,8 +2,8 @@ from argparse import ArgumentParser
 
 """
 IHDP-100 opt-params
-lamba   opt lr  batch_size  latent_dim  nh  h	train_mean	train_std	test_mean	test_std
-1e-6    adam    3.16e-05	256	40	2	256	2.33580447997	0.319084194844	2.53072932291	0.346911865924
+lamba   lr  batch_size  latent_dim  nh  h	train_mean	train_std	test_mean	test_std
+1e-6    3.16e-05	256	40	2	256	2.33580447997	0.319084194844	2.53072932291	0.346911865924
 """
 
 def parse_args():
@@ -12,7 +12,7 @@ def parse_args():
 
     parser.add_argument('--reps', type=int, default=10)
     parser.add_argument('--lr', type=float, default=0.01)
-    parser.add_argument('--opt', choices=['adam', 'adamax'], default='adamax')
+    parser.add_argument('--opt', choices=['adam', 'adamax'], default='adam')
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--lamba', type=float, default=0.0001)
     parser.add_argument('--earl', type=int, default=200, help="validation interval epochs")
@@ -26,7 +26,7 @@ def parse_args():
     # gaussian noise experiments
     parser.add_argument('--noise', type=int, default=0)
     parser.add_argument('--top-per', type=float, default=0.0)
-    parser.add_argument('--pick-type', type=str, default="top", help="top or rand")
+    parser.add_argument('--pick-type', type=str, default="", help="top or rand")
     # padding bernoulli noise exp
     parser.add_argument('--pnoise', type=str, default=None, help="padding noise type")
     parser.add_argument('--pn_size', type=int, default=10)

@@ -70,7 +70,9 @@ arg_info = {
     "hidden_dim" : h,
     "batch_size" : batch_size,
     "lr" : lr,
-    "epochs" : epochs
+    "epochs" : epochs,
+    "lamba" : lamba,
+
 }
 
 if args.noise > 0:
@@ -101,7 +103,8 @@ for gnoise in noises:
 
         xalltr, talltr, yalltr = np.concatenate([xtr, xva], axis=0), np.concatenate([ttr, tva], axis=0), np.concatenate([ytr, yva], axis=0)
         if task == 'jobs':
-            evaluator_train = Evaluator(yalltr, talltr, e=etr, task=task)
+            ealltr = np.concatenate([etr, eva], axis=0)
+            evaluator_train = Evaluator(yalltr, talltr, e=ealltr, task=task)
         else:
             evaluator_train = Evaluator(yalltr, talltr, y_cf=np.concatenate([y_cftr, y_cfva], axis=0),
                                         mu0=np.concatenate([mu0tr, mu0va], axis=0), mu1=np.concatenate([mu1tr, mu1va], axis=0), task=task)
@@ -339,9 +342,13 @@ for gnoise in noises:
                 test_filter = list(range(0, num_test))
 
             """Scoring"""
-            evaluator_test = Evaluator(yte[test_filter], tte[test_filter], y_cf=y_cfte[test_filter], mu0=mu0te[test_filter], mu1=mu1te[test_filter], task=task)
-            evaluator_train = Evaluator(yalltr[train_filter], talltr[train_filter], y_cf=np.concatenate([y_cftr, y_cfva], axis=0)[train_filter],
-                                        mu0=np.concatenate([mu0tr, mu0va], axis=0)[train_filter], mu1=np.concatenate([mu1tr, mu1va], axis=0)[train_filter], task=task)
+            if task == 'jobs':
+                evaluator_test = Evaluator(yte[test_filter], tte[test_filter], e=ete[test_filter], task=task)
+                evaluator_train = Evaluator(yalltr[train_filter], talltr[train_filter], e=ealltr[train_filter], task=task)
+            else:
+                evaluator_test = Evaluator(yte[test_filter], tte[test_filter], y_cf=y_cfte[test_filter], mu0=mu0te[test_filter], mu1=mu1te[test_filter], task=task)
+                evaluator_train = Evaluator(yalltr[train_filter], talltr[train_filter], y_cf=np.concatenate([y_cftr, y_cfva], axis=0)[train_filter],
+                                            mu0=np.concatenate([mu0tr, mu0va], axis=0)[train_filter], mu1=np.concatenate([mu1tr, mu1va], axis=0)[train_filter], task=task)
             y0, y1 = get_y0_y1(sess, y_post, f0, f1, shape=yalltr.shape, L=100, verbose=False, task=task)
             if task == 'ihdp':
                 y0, y1 = y0 * ys + ym, y1 * ys + ym
