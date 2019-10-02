@@ -21,6 +21,8 @@ args = arguments.parse_args()
 args.exp_name = "twins-param-search"
 exp_name = args.exp_name
 
+task = args.task
+
 args.true_post = True
 pnoise_type = args.pnoise
 pnoise_size = args.pn_size
@@ -28,6 +30,7 @@ pnoise_scale = args.pn_scale
 
 data_path = args.data_path
 save_model = args.save_model
+
 if not save_model:
     save_model = 'models/' + exp_name
 
@@ -38,7 +41,6 @@ load_model = args.load_model
 
 data_pref = '_'.join([ str(i) for i in [pnoise_type, pnoise_size, pnoise_scale, ""]]) if pnoise_type is not None else ""
 
-task = args.task
 if task == 'ihdp':
     dataset = IHDP(replications=args.reps, data_pref=data_pref, path_data=data_path)
 elif task == 'twins':
@@ -54,6 +56,7 @@ d = args.latent_dim  # latent dimension
 lamba = 1e-6  # weight decay
 nh, h = args.nh, args.h_dim  # number and size of hidden layers
 batch_size = args.batch_size
+epochs = args.epochs
 
 lr = args.lr
 
@@ -66,7 +69,8 @@ arg_info = {
     "nh" : nh,
     "hidden_dim" : h,
     "batch_size" : batch_size,
-    "lr" : lr
+    "lr" : lr,
+    "epochs" : epochs
 }
 
 if args.noise > 0:
@@ -205,7 +209,7 @@ for gnoise in noises:
             # saver = tf.train.Saver(tf.contrib.slim.get_variables())
             tf.global_variables_initializer().run()
 
-            n_epoch, n_iter_per_epoch, idx = args.epochs, max(10 * int(xtr.shape[0] / batch_size), 1), np.arange(xtr.shape[0])
+            n_epoch, n_iter_per_epoch, idx = epochs, max(10 * int(xtr.shape[0] / batch_size), 1), np.arange(xtr.shape[0])
             # dictionaries needed for evaluation
             tr0, tr1 = np.zeros((xalltr.shape[0], 1)), np.ones((xalltr.shape[0], 1))
             tr0t, tr1t = np.zeros((xte.shape[0], 1)), np.ones((xte.shape[0], 1))
@@ -241,15 +245,15 @@ for gnoise in noises:
                     info_dict = inference.update(feed_dict={x_ph_bin: x_train[:, 0:len(binfeats)],
                                                             x_ph_cont: x_train[:, len(binfeats):],
                                                             t_ph: t_train, y_ph: y_train})
-
+                    if np.any(np.isnan(info_dict['loss'])):
+                        print("During Processing {}, NaN Detected at Rep{}. Pass to next representaion".format(arg_info, i))
+                        raise ValueError
                     avg_loss += info_dict['loss']
                 # print info_dict
 
                 avg_loss = avg_loss / n_iter_per_epoch
                 avg_loss = avg_loss / batch_size
-                if np.any(np.isnan(avg_loss)):
-                    print("[Rep{}]NaN Detected. Pass to next representaion".format(i))
-                    continue
+
                 # To check individual loss
                 # ytpostloss, x1postloss, x2postloss, zqzloss, logpvalid1 = sess.run([yt_post_loss, x1_post_loss, x2_post_loss, z_qz_loss, logp_valid],
                 #                                 feed_dict={x_ph_bin: xva[:, 0:len(binfeats)],

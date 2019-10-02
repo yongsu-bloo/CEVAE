@@ -11,7 +11,7 @@ def parse_args():
     parser.add_argument('--reps', type=int, default=100)
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--opt', choices=['adam', 'adamax'], default='adam')
-    parser.add_argument('--epochs', type=int, default=3000)
+    parser.add_argument('--epochs', type=int, default=2000)
     parser.add_argument('--earl', type=int, default=200, help="validation interval epochs")
     parser.add_argument('--print_every', type=int, default=1000)
     # added from cib research

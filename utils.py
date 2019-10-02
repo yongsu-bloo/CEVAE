@@ -24,12 +24,12 @@ def write_results(args, results):
         res.write(contents)
         res.write('\n')
 
-        print('Test PEHE Mean : {:.3f}, Test PEHE Std : {:.3f}'.format(
+        print('Train Score Mean : {:.3f}, Train Score Std : {:.3f}'.format(
             train_mean,
             train_std
             ))
 
-        print('Test PEHE Mean : {:.3f}, Test PEHE Std : {:.3f}'.format(
+        print('Test Score Mean : {:.3f}, Test Score Std : {:.3f}'.format(
             test_mean,
             test_std
             ))

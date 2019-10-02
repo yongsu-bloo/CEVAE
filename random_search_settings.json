@@ -6,6 +6,7 @@
     "args_info" : [
         {"arg" : "--task", "option" : ["twins"]},
         {"arg" : "--lr", "option" : [1e-5, 3.16e-05, 1e-4, 3.16e-04]},
+        {"arg" : "--epochs", "option" : [500, 1000, 2000]},
         {"arg" : "--batch_size", "option" : [128, 256, 512]},
         {"arg" : "--latent_dim", "option" : [10, 20, 40]},
         {"arg" : "--nh", "option" : [2, 3, 4]},
