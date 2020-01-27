@@ -1,0 +1,29 @@
+{
+    "trial_num" : 9,
+    "gpu_ids" : [0, 1, 2, 3],
+    "parallel_tasks_per_gpu" : 4,
+    "exp_name" : "twins-gnoise3",
+    "args_info" : [
+        {"arg" : "--exp_name", "option" : ["twins-gnoise3"]},
+        {"arg" : "--task", "option" : ["twins"]},
+        {"arg" : "--reps", "option" : [100]},
+        {"arg" : "--lr", "option" : [0.0001]},
+        {"arg" : "--epochs", "option" : [100]},
+        {"arg" : "--lamba", "option" : [1e-4]},
+        {"arg" : "--batch_size", "option" : [256]},
+        {"arg" : "--latent_dim", "option" : [20]},
+        {"arg" : "--nh", "option" : [2]},
+        {"arg" : "--h_dim", "option" : [128]},
+        {"arg" : "--evaluate", "option" : ["True"]},
+        {"arg" : "--load_model", "option" : ["models/twins-opt"]},
+        {"arg" : "--data_pref", "option" : ["",
+                                            "0.001add_gnoise_",
+                                            "0.005add_gnoise_",
+                                            "0.01add_gnoise_",
+                                            "0.05add_gnoise_",
+                                            "0.1add_gnoise_",
+                                            "0.15add_gnoise_",
+                                            "0.2add_gnoise_",
+                                            "0.3add_gnoise_"]}
+    ]
+}

@@ -1,0 +1,21 @@
+{
+    "trial_num" : 6,
+    "gpu_ids" : [0, 1, 2, 3],
+    "parallel_tasks_per_gpu" : 4,
+    "exp_name" : "jobs-adversarial",
+    "args_info" : [
+        {"arg" : "--exp_name", "option" : ["jobs-adversarial"]},
+        {"arg" : "--task", "option" : ["jobs"]},
+        {"arg" : "--reps", "option" : [10]},
+        {"arg" : "--lr", "option" : [3.16e-05]},
+        {"arg" : "--epochs", "option" : [100]},
+        {"arg" : "--lamba", "option" : [1e-4]},
+        {"arg" : "--batch_size", "option" : [512]},
+        {"arg" : "--latent_dim", "option" : [10]},
+        {"arg" : "--nh", "option" : [4]},
+        {"arg" : "--h_dim", "option" : [256]},
+        {"arg" : "--evaluate", "option" : ["True"]},
+        {"arg" : "--load_model", "option" : ["models/opt-param"]},
+        {"arg" : "--adv_scale", "option" : [0.0,0.01,0.05,0.1,0.2,0.3]}
+    ]
+}

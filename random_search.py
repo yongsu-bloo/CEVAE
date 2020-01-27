@@ -15,9 +15,9 @@ import numpy as np
 import pandas as pd
 np.random.seed(2019)
 
-def main():
+def main(json_path):
     # parse json file
-    with open('./random_search_settings.json') as json_file:
+    with open(json_path) as json_file:
         settings = json.load(json_file)
 
     # random search trial repetition
@@ -148,4 +148,5 @@ def main():
         scheduler.shutdown()
 
 if __name__=='__main__':
-    main()
+    json_path = sys.argv[1]
+    main(json_path)

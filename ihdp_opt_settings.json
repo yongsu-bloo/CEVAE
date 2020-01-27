@@ -1,0 +1,26 @@
+{
+    "trial_num" : 6,
+    "gpu_ids" : [0, 1, 2, 3],
+    "parallel_tasks_per_gpu" : 4,
+    "exp_name" : "ihdp-gnoise",
+    "args_info" : [
+        {"arg" : "--exp_name", "option" : ["ihdp-gnoise"]},
+        {"arg" : "--task", "option" : ["ihdp"]},
+        {"arg" : "--reps", "option" : [1000]},
+        {"arg" : "--lr", "option" : [3.16e-05]},
+        {"arg" : "--epochs", "option" : [500]},
+        {"arg" : "--lamba", "option" : [1e-6]},
+        {"arg" : "--batch_size", "option" : [256]},
+        {"arg" : "--latent_dim", "option" : [40]},
+        {"arg" : "--nh", "option" : [2]},
+        {"arg" : "--h_dim", "option" : [256]},
+        {"arg" : "--evaluate", "option" : ["True"]},
+        {"arg" : "--load_model", "option" : ["models/opt-param"]},
+        {"arg" : "--data_pref", "option" : ["",
+                                            "0.001add_gnoise_",
+                                            "0.005add_gnoise_",
+                                            "0.01add_gnoise_",
+                                            "0.05add_gnoise_",
+                                            "0.1add_gnoise_"]}
+    ]
+}
