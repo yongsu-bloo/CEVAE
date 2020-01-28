@@ -3,7 +3,38 @@ from tensorflow.contrib import slim
 import numpy as np
 import sys
 from tensorflow.contrib.layers.python.layers import initializers
-# from cib
+
+def get_opt_args(args):
+    if args.task == "ihdp":
+        args.reps = 100
+        args.lr = 3.16e-05
+        args.epochs = 500
+        args.lamba = 1e-6
+        args.batch_size = 256
+        args.latent_dim = 40
+        args.nh = 2
+        args.h_dim = 256
+    elif args.task == "jobs":
+        args.reps = 10
+        args.lr = 3.16e-05
+        args.epochs = 100
+        args.lamba = 0.0001
+        args.batch_size = 512
+        args.latent_dim = 10
+        args.nh = 4
+        args.h_dim = 256
+    elif args.task == "twins":
+        args.reps = 10
+        args.lr = 3.16e-05
+        args.epochs = 300
+        args.lamba = 0.0001
+        args.batch_size = 256
+        args.latent_dim = 20
+        args.nh = 2
+        args.h_dim = 128
+    else:
+        print("Invalid task: {:}".format(task))
+    return args
 def write_results(args, results):
     train_mean, train_std, test_mean, test_std = results
 

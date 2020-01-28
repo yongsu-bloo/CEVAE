@@ -27,34 +27,29 @@ def parse_args():
     parser.add_argument('--lamba', type=float, default=0.0001)
     parser.add_argument('--earl', type=int, default=100, help="validation interval epochs")
     parser.add_argument('--print_every', type=int, default=20)
-    # added from cib research
+    ## added from cib research
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--latent_dim', type=int, default=20)
     parser.add_argument('--task', type=str, default='ihdp')
     parser.add_argument('--nh', type=int, default=3)
     parser.add_argument('--h_dim', type=int, default=200)
-
     # gaussian noise experiments
-    parser.add_argument('--noise', type=int, default=0)
-
-    # padding bernoulli noise exp
-    parser.add_argument('--pnoise', type=str, default=None, help="padding noise type")
-    parser.add_argument('--pn_size', type=int, default=10)
-    parser.add_argument('--pn_scale', type=float, default=0.2)
+    parser.add_argument('--gnoise', type=float, default=0., help="the dimension of noise to be padded")
+    # padding noise experiments
+    parser.add_argument('--pnoise', type=str, help="padding noise type. [Bernoulli, Gaussian]")
+    parser.add_argument('--pn_size', type=int, default=0)
+    parser.add_argument('--pn_scale', type=float, default=1.0)
     # uncertainty calibration
     parser.add_argument('--drop_type', type=str, help='type of drop the samples with high uncertainty. ["kl", "random", "cpvr", "fpvr", "c-f", "f-c", "c+f"]')
     parser.add_argument('--drop_ratio', type=float, default=0.0, help='ratio of drop the samples with high uncertainty ')
     # path
     parser.add_argument('--data_path', type=str, default="../data/IHDP/", help="data path")
     parser.add_argument('--data_pref', type=str, default="", help="data path prefix")
-    parser.add_argument('--save_model', type=str, default=None, help="model path to save.")
-    parser.add_argument('--load_model', type=str, default=None, help="model path to load")
+    parser.add_argument('--save_model', type=str, help="model path to save.")
+    parser.add_argument('--load_model', type=str, help="model path to load")
     parser.add_argument('--evaluate', type=bool, default=False, help="Test only")
-
-    parser.add_argument('--data_ratio', type=float, default=1.0)
-
-    # adversary
-    parser.add_argument('--adv_scale', type=float, default=0.0)
+    parser.add_argument('--data_ratio', type=float, default=1.0, help="training data ration to be used")
+    parser.add_argument('--adv_scale', type=float, default=0.0, help="adversarial noise scale")
 
     args = parser.parse_args()
     args.true_post = True

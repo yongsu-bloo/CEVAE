@@ -148,5 +148,5 @@ def main(json_path):
         scheduler.shutdown()
 
 if __name__=='__main__':
-    json_path = sys.argv[1]
+    json_path = sys.argv[1] if len(sys.argv) >=2 else "./random_search_settings.json"
     main(json_path)
